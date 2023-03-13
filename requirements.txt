@@ -1,0 +1,5 @@
+aiogram==2.25.1
+openai==0.27.1
+openai-whisper==20230308
+requests==2.28.2
+
