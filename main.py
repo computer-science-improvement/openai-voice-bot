@@ -6,6 +6,9 @@ import whisper
 import requests
 # from pydub import AudioSegment
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 VOICES = {
     'ADAM': 'pNInz6obpgDQGcFmaJgB',  # Adam (American, clear)
@@ -22,6 +25,8 @@ VOICES = {
 ELEVENLABS_ENDPOINTS = {
     'TEXT_TO_SPEECH': f"https://api.elevenlabs.io/v1/text-to-speech/{VOICES['ADAM']}"
 }
+
+print(os.getenv('OPENAI_API_KEY'))
 
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -111,11 +116,23 @@ async def voice_send(message: types.Message):
 
 @dp.message_handler(content_types='text')
 async def text_send(message: types.Message):
-    prompt = message.text
-    if prompt:
-        text_result = await get_openai_response(prompt)
-        await message.reply(text_result)
+    separator = 'IMAGE'
+    prompt = message.text.split(separator)[1]
+
+    if 'IMAGE' in message.text:
+        response = openai.Image.create(
+            prompt=prompt,
+            n=1,
+            size='256x256'
+        )
+
+        response_url = response['data'][0]['url']
+        await message.reply_photo(photo=response_url)
     else:
-        await message.reply('[INVALID PROMPT]')
+        if prompt:
+            text_result = await get_openai_response(prompt)
+            await message.reply(text_result)
+        else:
+            await message.reply('[INVALID PROMPT]')
 
 executor.start_polling(dp, skip_updates=True)
