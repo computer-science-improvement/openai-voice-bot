@@ -1,4 +1,5 @@
 import openai
+import io
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
@@ -45,19 +46,21 @@ async def get_voice(prompt):
         'Content-Type': 'application/json'
     }
 
-    json = {
+    payload = {
         'text': prompt,
     }
 
-    response = requests.post(ELEVENLABS_ENDPOINTS['TEXT_TO_SPEECH'], headers=headers, json=json)
-    with open('prompt_response.ogg', 'wb') as f:
-        f.write(response.content)
+    response = requests.post(ELEVENLABS_ENDPOINTS['TEXT_TO_SPEECH'], headers=headers, json=payload)
+    # with open('prompt_response.ogg', 'wb') as f:
+    #     f.write(response.content)
     # sound = AudioSegment.from_mp3('prompt_response.mp3')
     # sound.export('prompt_response.ogg', format='ogg', bitrate='32k')
+    buffer_audio = io.BytesIO(response.content)
+    return buffer_audio
 
 
 async def get_openai_response(prompt):
-    response = await openai.Completion.create(
+    response = openai.Completion.create(
         model='text-davinci-003',
         prompt=prompt,
         temperature=0.9,
@@ -109,8 +112,8 @@ async def voice_send(message: types.Message):
 
     await message.reply(text_result)
 
-    await get_voice(prompt_response)
-    await bot.send_voice(chat_id=chat_id, voice=open('prompt_response.ogg', 'rb'))
+    voice_answer = await get_voice(prompt_response)
+    await bot.send_voice(chat_id=chat_id, voice=voice_answer)
     await message.answer(prompt_response)
 
 
@@ -134,5 +137,6 @@ async def text_send(message: types.Message):
             await message.reply(text_result)
         else:
             await message.reply('[INVALID PROMPT]')
+
 
 executor.start_polling(dp, skip_updates=True)
